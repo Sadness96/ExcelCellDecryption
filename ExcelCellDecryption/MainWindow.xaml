@@ -5,8 +5,25 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ExcelCellDecryption"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Excel 单元格解密程序" Height="250" Width="500">
     <Grid>
-        
+        <StackPanel Orientation="Vertical">
+            <StackPanel Orientation="Horizontal" Margin="0,20,0,8">
+                <Label Content="源目录：" Width="70"/>
+                <TextBox x:Name="SourcePath" Width="300" Height="25"/>
+                <Button x:Name="SelectSource" Content="选择源文件" Width="80" Margin="10,0" Click="SelectSource_Click"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,8">
+                <Label Content="目标目录：" Width="70"/>
+                <TextBox x:Name="TargetPath" Width="300" Height="25"/>
+                <Button x:Name="SelectTarget" Content="选择目标文件" Width="80" Margin="10,0" Click="SelectTarget_Click"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,8">
+                <Label Content="完成进度：" Width="70"/>
+                <ProgressBar x:Name="SpeedOfProgress" Width="250" Minimum="0" Maximum="100"/>
+                <Label x:Name="SpeedOfProgressLabel" Content="0%" Width="40" Margin="5,0"/>
+                <Button x:Name="Implement" Content="执行" Width="80" Margin="10,0" Click="Implement_Click"/>
+            </StackPanel>
+        </StackPanel>
     </Grid>
 </Window>
