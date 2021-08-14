@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -43,6 +44,7 @@ namespace ExcelCellDecryption
             "html:Color=\"#FFFFF2\"",
             "html:Color=\"#FFFFF1\"",
             "html:Color=\"#FFFFCC\"",
+            "html:Color=\"#FFFFFF\"",
             "html:Size=\"1\"",
             "html:Size=\"2\""
         };
@@ -142,8 +144,15 @@ namespace ExcelCellDecryption
                             }
                             strTxt += vXmlNodeFont.InnerText;
                         }
-                        // 记录主要 Font
-                        xmlNodeMain.InnerText = strTxt;
+                        // 记录主要 Font,超过15位增加 "'"
+                        if (strTxt.Length >= 15 && IsNumeric(strTxt) && !strTxt.First().Equals('\''))
+                        {
+                            xmlNodeMain.InnerText = $"'{strTxt}";
+                        }
+                        else
+                        {
+                            xmlNodeMain.InnerText = strTxt;
+                        }
                         // 删除的 Font
                         var vParentNode = xmlNodeMain.ParentNode;
                         for (int k = 0; k < xmlNodesPrepare.Count; k++)
@@ -164,6 +173,11 @@ namespace ExcelCellDecryption
             {
                 MessageBox.Show("请选择单元格加密的Excel文件！");
             }
+        }
+
+        public static bool IsNumeric(string value)
+        {
+            return Regex.IsMatch(value, @"^[+-]?\d*[.]?\d*$");
         }
     }
 }
