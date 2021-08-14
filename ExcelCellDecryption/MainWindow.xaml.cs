@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -32,17 +33,15 @@ namespace ExcelCellDecryption
         /// <param name="e"></param>
         private void SelectSource_Click(object sender, RoutedEventArgs e)
         {
-
-        }
-
-        /// <summary>
-        /// 选择目标文件
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void SelectTarget_Click(object sender, RoutedEventArgs e)
-        {
-
+            OpenFileDialog dialog = new OpenFileDialog();
+            dialog.Multiselect = false;//该值确定是否可以选择多个文件
+            dialog.Title = "请选择单元格异常文件";
+            dialog.Filter = "Excel 文件(*.xlsx)|*.xlsx";
+            if (dialog.ShowDialog() == true)
+            {
+                SourcePath.Text = dialog.FileName;
+                TargetPath.Text = $"{System.IO.Path.GetDirectoryName(dialog.FileName)}\\{System.IO.Path.GetFileNameWithoutExtension(dialog.FileName)}_decrypt{System.IO.Path.GetExtension(dialog.FileName)}";
+            }
         }
 
         /// <summary>
@@ -52,7 +51,14 @@ namespace ExcelCellDecryption
         /// <param name="e"></param>
         private void Implement_Click(object sender, RoutedEventArgs e)
         {
+            if (!string.IsNullOrEmpty(SourcePath.Text) && !string.IsNullOrEmpty(TargetPath.Text))
+            {
 
+            }
+            else
+            {
+                MessageBox.Show("请选择单元格加密的Excel文件！");
+            }
         }
     }
 }

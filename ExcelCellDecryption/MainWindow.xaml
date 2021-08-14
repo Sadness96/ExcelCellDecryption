@@ -10,13 +10,12 @@
         <StackPanel Orientation="Vertical">
             <StackPanel Orientation="Horizontal" Margin="0,20,0,8">
                 <Label Content="源目录：" Width="70"/>
-                <TextBox x:Name="SourcePath" Width="300" Height="25"/>
+                <TextBox x:Name="SourcePath" Width="300" Height="24" IsEnabled="False"/>
                 <Button x:Name="SelectSource" Content="选择源文件" Width="80" Margin="10,0" Click="SelectSource_Click"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,8">
                 <Label Content="目标目录：" Width="70"/>
-                <TextBox x:Name="TargetPath" Width="300" Height="25"/>
-                <Button x:Name="SelectTarget" Content="选择目标文件" Width="80" Margin="10,0" Click="SelectTarget_Click"/>
+                <TextBox x:Name="TargetPath" Width="300" Height="24" IsEnabled="False"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,8">
                 <Label Content="完成进度：" Width="70"/>
