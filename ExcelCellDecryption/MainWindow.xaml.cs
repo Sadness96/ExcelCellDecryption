@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -35,6 +36,18 @@ namespace ExcelCellDecryption
         private const string DECRYPT = "decrypt";
 
         /// <summary>
+        /// 删除标识,包含则删除
+        /// </summary>
+        private List<string> listRemoveIdentification = new List<string>()
+        {
+            "html:Color=\"#FFFFF2\"",
+            "html:Color=\"#FFFFF1\"",
+            "html:Color=\"#FFFFCC\"",
+            "html:Size=\"1\"",
+            "html:Size=\"2\""
+        };
+
+        /// <summary>
         /// 选择源文件
         /// </summary>
         /// <param name="sender"></param>
@@ -44,7 +57,7 @@ namespace ExcelCellDecryption
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Multiselect = false;//该值确定是否可以选择多个文件
             dialog.Title = "请选择单元格异常文件";
-            dialog.Filter = "Excel 文件(*.xlsx)|*.xlsx";
+            dialog.Filter = "Excel 电子表格 2003(*.xml)|*.xml";
             if (dialog.ShowDialog() == true)
             {
                 SourcePath.Text = dialog.FileName;
@@ -59,6 +72,10 @@ namespace ExcelCellDecryption
         /// <param name="e"></param>
         private void Implement_Click(object sender, RoutedEventArgs e)
         {
+            if (File.Exists(TargetPath.Text))
+            {
+                File.Delete(TargetPath.Text);
+            }
             if (!string.IsNullOrEmpty(SourcePath.Text) && !string.IsNullOrEmpty(TargetPath.Text) && File.Exists(SourcePath.Text))
             {
                 var vTempPath = $"{System.IO.Path.GetDirectoryName(SourcePath.Text)}\\DecryptTemp_{DateTime.Now.Ticks}";
@@ -70,43 +87,78 @@ namespace ExcelCellDecryption
                 }
                 // 拷贝需要处理的文件
                 File.Copy(SourcePath.Text, vNewFile);
-                // 修改后缀名称
-                var vChangedName = System.IO.Path.ChangeExtension(vNewFile, "zip");
-                File.Copy(vNewFile, vChangedName);
-                // 解压文件
-                var vZipPath = $"{System.IO.Path.GetDirectoryName(vChangedName)}\\{System.IO.Path.GetFileNameWithoutExtension(vChangedName)}";
-                var vXMLPath = $"{vZipPath}\\xl\\sharedStrings.xml";
-                var vIsDeCompressionZip = ZIPHelper.DeCompressionZip(vChangedName, vZipPath);
-                if (vIsDeCompressionZip && File.Exists(vXMLPath))
+                // 解析 Excel XML 文档
+                XmlDocument doc = new XmlDocument();
+                doc.Load(vNewFile);
+                XmlNamespaceManager nsmgr = new XmlNamespaceManager(doc.NameTable);
+                nsmgr.AddNamespace("ab", "http://www.w3.org/TR/REC-html40");
+                nsmgr.AddNamespace("ss", "urn:schemas-microsoft-com:office:spreadsheet");
+                // 删除掺杂的数据
+                XmlNodeList nodeFonts = doc.SelectNodes("//ab:Font", nsmgr);
+                SpeedOfProgress.Maximum = nodeFonts.Count;
+                for (int i = 0; i < nodeFonts.Count; i++)
                 {
-                    // 解析 Excel XML 文档
-                    XmlDocument Document = new XmlDocument();
-                    Document.Load(vXMLPath);
-                    // TODO:处理数据
-
-                    // 保存回 Excel Zip
-                    var vSaveExcelZip = $"{vZipPath}_{DECRYPT}.zip";
-                    List<string> listFolder = new List<string>();
-                    listFolder.AddRange(FolderHelper.GetSpecifiedDirectoryFolders(vZipPath));
-                    listFolder.AddRange(FolderHelper.GetSpecifiedDirectoryFiles(vZipPath));
-                    var vIsCompressionZip = ZIPHelper.CompressionZip(vSaveExcelZip, listFolder);
-                    if (vIsCompressionZip)
+                    SpeedOfProgress.Value = i;
+                    SpeedOfProgressLabel.Content = $"{nodeFonts.Count / 100 * i}%";
+                    var vXmlNodeFont = nodeFonts[i];
+                    bool bIsRemove = false;
+                    foreach (var item in listRemoveIdentification)
                     {
-                        // 保存回 Excel 文件
-                        File.Copy(vSaveExcelZip, TargetPath.Text);
+                        if (vXmlNodeFont.OuterXml.Contains(item))
+                        {
+                            bIsRemove = true;
+                            break;
+                        }
                     }
-                    else
+                    if (bIsRemove)
                     {
-                        MessageBox.Show("执行失败，文件压缩失败！");
+                        var vParentNode = vXmlNodeFont.ParentNode;
+                        vParentNode.RemoveChild(vXmlNodeFont);
                     }
                 }
-                else
+                // 合并整理后的数据
+                XmlNodeList nodeDatas = doc.SelectNodes("//ss:Data", nsmgr);
+                for (int i = 0; i < nodeDatas.Count; i++)
                 {
-                    MessageBox.Show("执行失败，无法解压Excel文件！");
+                    var vXmlNodeData = nodeDatas[i];
+                    var vXmlNodeFonts = vXmlNodeData.ChildNodes;
+                    if (vXmlNodeFonts.Count >= 2)
+                    {
+                        // Data 中 Font 数量大于等于 2 需要合并
+                        string strTxt = "";
+                        XmlNode xmlNodeMain = null;
+                        List<XmlNode> xmlNodesPrepare = new List<XmlNode>();
+                        // 记录数据 拼接文本 记录主要 Font 和需要删除的 Font
+                        for (int j = 0; j < vXmlNodeFonts.Count; j++)
+                        {
+                            var vXmlNodeFont = vXmlNodeFonts[j];
+                            if (j == 0)
+                            {
+                                xmlNodeMain = vXmlNodeFont;
+                            }
+                            else
+                            {
+                                xmlNodesPrepare.Add(vXmlNodeFont);
+                            }
+                            strTxt += vXmlNodeFont.InnerText;
+                        }
+                        // 记录主要 Font
+                        xmlNodeMain.InnerText = strTxt;
+                        // 删除的 Font
+                        var vParentNode = xmlNodeMain.ParentNode;
+                        for (int k = 0; k < xmlNodesPrepare.Count; k++)
+                        {
+                            vParentNode.RemoveChild(xmlNodesPrepare[k]);
+                        }
+                    }
                 }
+                doc.Save(vNewFile);
+                // 保存最终解密文件
+                File.Copy(vNewFile, TargetPath.Text);
                 // 删除临时文件夹
                 DirectoryInfo dir = new DirectoryInfo(vTempPath);
                 dir.Delete(true);
+                MessageBox.Show("执行完成！");
             }
             else
             {
