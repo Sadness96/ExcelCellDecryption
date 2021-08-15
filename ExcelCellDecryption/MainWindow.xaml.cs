@@ -97,11 +97,8 @@ namespace ExcelCellDecryption
                 nsmgr.AddNamespace("ss", "urn:schemas-microsoft-com:office:spreadsheet");
                 // 删除掺杂的数据
                 XmlNodeList nodeFonts = doc.SelectNodes("//ab:Font", nsmgr);
-                SpeedOfProgress.Maximum = nodeFonts.Count;
                 for (int i = 0; i < nodeFonts.Count; i++)
                 {
-                    SpeedOfProgress.Value = i;
-                    SpeedOfProgressLabel.Content = $"{nodeFonts.Count / 100 * i}%";
                     var vXmlNodeFont = nodeFonts[i];
                     bool bIsRemove = false;
                     foreach (var item in listRemoveIdentification)
